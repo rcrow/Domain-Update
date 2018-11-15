@@ -3,14 +3,20 @@ import datetime
 import smtplib
 import pandas
 
+def nanToBlank(string):
+    if pandas.isnull(string):
+        return ""
+    else:
+        return string
+
 def sendEmail(fromaddr,toaddrs,msg):
     print("Sending an email")
     params = pandas.read_excel("domainParameters.xlsx", sheetname='email')
-    print(params)
+    #print(params)
     username=params.iat[0,0]
     password=params.iat[0,1]
-    print(username)
-    print(password)
+    #print(username)
+    #print(password)
     server = smtplib.SMTP('smtp.gmail.com:587')
     server.ehlo()
     server.starttls()
@@ -43,50 +49,25 @@ else:
 
 dateString = str(time.year) + month + day + "_" + hour + minute + second
 
-backupPath = r"\\Igswzcwwgsrio\loco\Geology\SDE_Stuff\DomainTables\TableBackups\DomainTableBackups.gdb"
+backupPath = pandas.read_excel("domainParameters.xlsx", sheetname='backup').iat[0,0]
 
-locogeo=r"Database Connections\Connection to igswzcwggsmoki.wr.usgs.gov_LOCOGEO_SDE.sde"
-rscgeo=r"Database Connections\Connection to igswzdwgdbkiva.wr.usgs.gov_RSCGEO_DBO.sde"
-locomaps=r"Database Connections\Connection to igswzcwggsmoki.wr.usgs.gov_LOCOMAPS_DBO.sde"
+connections = pandas.read_excel("domainParameters.xlsx", sheetname='connections')
+dbsNames = connections['dbsNames'].values.tolist()
+sdeConnections = connections['sdeConnections'].values.tolist()
+for num, db in enumerate(dbsNames):
+    db=sdeConnections[num]
 
-#TODO generate these lists from the domainParameters excel file
-
-domainName=["PKHMapUnits",
-            "DataSourceID",
-            "HPGPS_Purpose",
-            "SUND_MapUnits",
-            "LOCOGroupMapUnit"]
-domainDescription=["PKH list of map units",
-                   "Source of data",
-                   "Purpose for HPGPS data",
-                   "Original SUND map units",
-                   "LOCO group map units"]
-excelFile = [r"\\igswzcwwgsrio\loco\Geology\SDE_Stuff\DomainTables\MasterTables\PKH_LMU_MASTER.xlsx",
-             r"\\igswzcwwgsrio\loco\Geology\SDE_Stuff\DomainTables\MasterTables\DataSource_MASTER.xlsx",
-             r"\\Igswzcwwgsrio\loco\Geology\SDE_Stuff\DomainTables\MasterTables\AttributeDomains_MASTER.gdb\HPGPS_Purpose",#Not an excelsheet consider renaming list name
-             r"\\igswzcwwgsrio\loco\Geology\SDE_Stuff\DomainTables\MasterTables\SUND_MapUnits_MASTER.xls",
-             r"\\Igswzcwwgsrio\loco\Geology\SDE_Stuff\DomainTables\MasterTables\LOCOGroup_MASTER.xlsx"]
-sheetName = [r"PKH_LMU$", #Need $ after sheet names
-             r"DataSourceID$",
-             "",
-             "SUND_MapUnits_MASTER$",#If arc table BLANK sheetname
-             "LOCOGroupMaster$"]
-codeField = ["mapunit",
-             "Code",
-             "Code",
-             "Code",
-             "MapUnit"]
-descriptionField = ["DomainDesc",
-                    "DomDesc",
-                    "DomainDescrip",
-                    "DomainDescrip",
-                    "DomainDesc"]
-
-DBs = [[locogeo,rscgeo,locomaps],
-       [locogeo,rscgeo,locomaps],
-       [locogeo],
-       [rscgeo],
-       [locogeo]]
+domains = pandas.read_excel("domainParameters.xlsx", sheetname='domains')
+domainName = domains['domain_name'].values.tolist()
+domainDescription = domains['domain_description'].values.tolist()
+excelFile = domains['excel_file_or_ArcTable'].values.tolist()
+sheetName = domains['sheet_name'].values.tolist()
+codeField = domains['code_field'].values.tolist()
+descriptionField = domains['description_field'].values.tolist()
+DBsStrings = domains['DBs'].values.tolist()
+DBs = []
+for DB in DBsStrings:
+    DBs.append(DB.split(","))
 
 emailString = 'At least one of the following SDE domains has been updated: '
 length=len(domainName)
@@ -107,7 +88,7 @@ for d in range(len(domainName)):
                 emailString = emailString + domainName[d]+ ", "
         count=count+1
 
-        arcpy.TableToDomain_management(in_table=excelFile[d]+"\\"+sheetName[d],
+        arcpy.TableToDomain_management(in_table=excelFile[d]+"\\"+nanToBlank(sheetName[d]),
                                        code_field=codeField[d],
                                        description_field=descriptionField[d],
                                        in_workspace=DB,
@@ -120,9 +101,7 @@ for d in range(len(domainName)):
 #Email addresses for use in sending emails
 fromaddr = pandas.read_excel("domainParameters.xlsx", sheetname='email').iat[0,0] #get email address from param file
 toErrorAddrs = pandas.read_excel("domainParameters.xlsx", sheetname='email').iat[0,0] #get email address from param file
-toaddrs = ['crow.ryan@gmail.com', 'tfelger@usgs.gov', 'pkhouse@gmail.com', 'khouse@usgs.gov', 'rcrow@usgs.gov', 'emennow@usgs.gov', 'ccassidy@usgs.gov', 'sbeard@usgs.gov', 'dblock@usgs.gov']
-#toaddrs = ['crow.ryan@gmail.com', 'tfelger@usgs.gov']
-
+toaddrs = pandas.read_excel("domainParameters.xlsx", sheetname='toAddresses')['email'].values.tolist()
 
 msg = "\r\n".join([
     "From: " + fromaddr,
