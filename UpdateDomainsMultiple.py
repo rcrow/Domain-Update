@@ -11,7 +11,7 @@ def nanToBlank(string):
 
 def sendEmail(fromaddr,toaddrs,msg):
     print("Sending an email")
-    params = pandas.read_excel("domainParameters.xlsx", sheetname='email')
+    params = pandas.read_excel("domainParameters.xlsx", sheet_name='email')
     #print(params)
     username=params.iat[0,0]
     password=params.iat[0,1]
@@ -49,15 +49,14 @@ else:
 
 dateString = str(time.year) + month + day + "_" + hour + minute + second
 
-backupPath = pandas.read_excel("domainParameters.xlsx", sheetname='backup').iat[0,0]
+backupPath = pandas.read_excel("domainParameters.xlsx", sheet_name='backup').iat[0,0]
 
-connections = pandas.read_excel("domainParameters.xlsx", sheetname='connections')
+connections = pandas.read_excel("domainParameters.xlsx", sheet_name='connections')
 dbsNames = connections['dbsNames'].values.tolist()
 sdeConnections = connections['sdeConnections'].values.tolist()
-for num, db in enumerate(dbsNames):
-    db=sdeConnections[num]
+dbDict = dict(zip(dbsNames,sdeConnections))
 
-domains = pandas.read_excel("domainParameters.xlsx", sheetname='domains')
+domains = pandas.read_excel("domainParameters.xlsx", sheet_name='domains')
 domainName = domains['domain_name'].values.tolist()
 domainDescription = domains['domain_description'].values.tolist()
 excelFile = domains['excel_file_or_ArcTable'].values.tolist()
@@ -68,15 +67,17 @@ DBsStrings = domains['DBs'].values.tolist()
 DBs = []
 for DB in DBsStrings:
     DBs.append(DB.split(","))
+print(DBs)
 
 emailString = 'At least one of the following SDE domains has been updated: '
 length=len(domainName)
+print(length)
 for d in range(len(domainName)):
     count=0
     for DB in DBs[d]:
         #MAKE A BACKUP OF THE EXISTING DOMAINS
-        if count == 0: #Domains should be the same for all the DBs if the script is working right
-            arcpy.DomainToTable_management(in_workspace=DB,
+        if count == 0: #Domains should be the same for all the DBs if the script is working right so only make a copy from the first db
+            arcpy.DomainToTable_management(in_workspace=dbDict[DB],
                                            domain_name=domainName[d],
                                            out_table=backupPath+"\\"+domainName[d]+dateString,
                                            code_field=codeField[d],
@@ -91,17 +92,18 @@ for d in range(len(domainName)):
         arcpy.TableToDomain_management(in_table=excelFile[d]+"\\"+nanToBlank(sheetName[d]),
                                        code_field=codeField[d],
                                        description_field=descriptionField[d],
-                                       in_workspace=DB,
+                                       in_workspace=dbDict[DB],
                                        domain_name=domainName[d],
                                        domain_description=domainDescription[d],
                                        update_option="REPLACE")
+
         #TODO Sort Domain with Sort Coded Value Domain
-        print(domainName[d]+" updated in DB: "+DB)
+        print(domainName[d]+" updated in DB: "+dbDict[DB])
 
 #Email addresses for use in sending emails
-fromaddr = pandas.read_excel("domainParameters.xlsx", sheetname='email').iat[0,0] #get email address from param file
-toErrorAddrs = pandas.read_excel("domainParameters.xlsx", sheetname='email').iat[0,0] #get email address from param file
-toaddrs = pandas.read_excel("domainParameters.xlsx", sheetname='toAddresses')['email'].values.tolist()
+fromaddr = pandas.read_excel("domainParameters.xlsx", sheet_name='email').iat[0,0] #get email address from param file
+toErrorAddrs = pandas.read_excel("domainParameters.xlsx", sheet_name='email').iat[0,0] #get email address from param file
+toaddrs = pandas.read_excel("domainParameters.xlsx", sheet_name='toAddresses')['email'].values.tolist()
 
 msg = "\r\n".join([
     "From: " + fromaddr,
