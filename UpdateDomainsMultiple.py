@@ -71,10 +71,12 @@ print(DBs)
 
 emailString = 'At least one of the following SDE domains has been updated: '
 length=len(domainName)
-print(length)
+#print(length)
 for d in range(len(domainName)):
+    #print(domainName[d])
     count=0
     for DB in DBs[d]:
+        print(DB)
         #MAKE A BACKUP OF THE EXISTING DOMAINS
         if count == 0: #Domains should be the same for all the DBs if the script is working right so only make a copy from the first db
             arcpy.DomainToTable_management(in_workspace=dbDict[DB],
@@ -89,7 +91,10 @@ for d in range(len(domainName)):
                 emailString = emailString + domainName[d]+ ", "
         count=count+1
 
-        arcpy.TableToDomain_management(in_table=excelFile[d]+"\\"+nanToBlank(sheetName[d]),
+        inTable = excelFile[d]+"\\"+nanToBlank(sheetName[d])
+        print("Table name: " + str(inTable))
+
+        arcpy.TableToDomain_management(in_table=inTable,
                                        code_field=codeField[d],
                                        description_field=descriptionField[d],
                                        in_workspace=dbDict[DB],
